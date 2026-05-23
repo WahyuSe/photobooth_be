@@ -86,11 +86,11 @@ const seedTemplates = async () => {
   }
 };
 
-// Run template seeding asynchronously at startup
-seedTemplates().catch(err => console.error('🌱 Gagal seeding templates:', err));
-
 // Start listening only in non-serverless environments (local development)
 if (!process.env.VERCEL) {
+  // Run template seeding asynchronously at startup only in local development
+  seedTemplates().catch(err => console.error('🌱 Gagal seeding templates:', err));
+
   app.listen(PORT, () => {
     console.log(`\n🚀 PhotoBooth Backend running at http://localhost:${PORT}`);
     console.log(`📧 Email: Nodemailer (SMTP)`);
