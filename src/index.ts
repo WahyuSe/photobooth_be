@@ -86,11 +86,17 @@ const seedTemplates = async () => {
   }
 };
 
-app.listen(PORT, async () => {
-  await seedTemplates();
-  console.log(`\n🚀 PhotoBooth Backend running at http://localhost:${PORT}`);
-  console.log(`📧 Email: Nodemailer (SMTP)`);
-  console.log(`🎨 Templates: Ready\n`);
-});
+// Run template seeding asynchronously at startup
+seedTemplates().catch(err => console.error('🌱 Gagal seeding templates:', err));
+
+// Start listening only in non-serverless environments (local development)
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`\n🚀 PhotoBooth Backend running at http://localhost:${PORT}`);
+    console.log(`📧 Email: Nodemailer (SMTP)`);
+    console.log(`🎨 Templates: Ready\n`);
+  });
+}
 
 export default app;
+
