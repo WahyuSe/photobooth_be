@@ -13,11 +13,11 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 4000;
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
+const FRONTEND_URL = (process.env.FRONTEND_URL || 'http://localhost:3000').replace(/\/$/, '');
 
 // Middleware
 app.use(cors({
-  origin: FRONTEND_URL,
+  origin: [FRONTEND_URL, 'http://localhost:3000'],
   credentials: true,
 }));
 app.use(express.json({ limit: '25mb' }));
