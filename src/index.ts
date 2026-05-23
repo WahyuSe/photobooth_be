@@ -17,7 +17,29 @@ const FRONTEND_URL = (process.env.FRONTEND_URL || 'http://localhost:3000').repla
 
 // Middleware
 app.use(cors({
-  origin: [FRONTEND_URL, 'http://localhost:3000'],
+  origin: (origin, callback) => {
+    // 1. Izinkan request tanpa origin (seperti curl atau server-to-server)
+    if (!origin) return callback(null, true);
+
+    // 2. Izinkan local development
+    if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
+      return callback(null, true);
+    }
+
+    // 3. Izinkan yang cocok dengan FRONTEND_URL yang dikonfigurasi
+    if (FRONTEND_URL && (origin === FRONTEND_URL || origin.replace(/\/$/, '') === FRONTEND_URL)) {
+      return callback(null, true);
+    }
+
+    // 4. Izinkan domain vercel.app apa pun (termasuk preview link dan subdomain)
+    if (origin.endsWith('.vercel.app') || origin === 'https://vercel.app') {
+      return callback(null, true);
+    }
+
+    // 5. Fallback: Berikan peringatan di log tapi tetap izinkan agar Kiosk tidak macet di lapangan
+    console.warn(`⚠️ CORS Request dari origin tidak terdaftar: ${origin}`);
+    return callback(null, true);
+  },
   credentials: true,
 }));
 app.use(express.json({ limit: '25mb' }));
