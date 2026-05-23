@@ -3,7 +3,10 @@ import fs from 'fs';
 import path from 'path';
 
 const router = Router();
-const settingsFilePath = path.join(__dirname, '../../settings.json');
+const isVercel = process.env.VERCEL === '1' || !!process.env.VERCEL;
+const settingsFilePath = isVercel
+  ? '/tmp/settings.json'
+  : path.join(__dirname, '../../settings.json');
 
 router.post('/login', (req: Request, res: Response) => {
   const { password } = req.body;

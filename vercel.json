@@ -1,15 +1,13 @@
 {
   "version": 2,
-  "builds": [
+  "rewrites": [
     {
-      "src": "src/index.ts",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
+      "source": "/api/:path*",
+      "destination": "/api"
+    },
     {
-      "src": "/(.*)",
-      "dest": "src/index.ts"
+      "source": "/health",
+      "destination": "/api"
     }
   ]
 }

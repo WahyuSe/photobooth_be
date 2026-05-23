@@ -9,8 +9,12 @@ const router = Router();
 
 // Ensure uploads dir exists
 const uploadsDir = path.join(__dirname, '../../uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
+try {
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+} catch (error) {
+  console.warn('⚠️ Gagal membuat folder uploads (bisa diabaikan di Vercel):', error);
 }
 
 const storage = multer.diskStorage({
