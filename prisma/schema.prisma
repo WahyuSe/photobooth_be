@@ -8,11 +8,20 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model TemplateCategory {
+  id          String     @id @default(cuid())
+  name        String
+  description String?
+  templates   Template[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
 model Template {
   id              String   @id @default(cuid())
   name            String
   description     String
-  layout          String   // 'strip' | 'grid2x2' | 'single' | 'strip3'
+  layout          String   // 'strip' | 'grid2x2' | 'single' | 'strip3' | 'grid2x3' | 'grid2x4'
   photoCount      Int
   thumbnail       String?
   frameColor      String
@@ -27,8 +36,27 @@ model Template {
   aspectRatio     String   @default("1:3")
   overlayImage    String?
   slotsJson       String?
+  categoryId      String?
+  category        TemplateCategory? @relation(fields: [categoryId], references: [id])
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+}
+
+model EventConfig {
+  id                  String   @id @default(cuid())
+  eventName           String   @default("My Event")
+  startDate           DateTime
+  endDate             DateTime
+  quota               Int      @default(0) // 0 means unlimited
+  usedQuota           Int      @default(0)
+  userSessionDuration Int      @default(300)
+  page1Duration       Int      @default(30)
+  page2Duration       Int      @default(180)
+  page3Duration       Int      @default(60)
+  photoCountdown      Int      @default(5)
+  isActive            Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 }
 
 model Session {
@@ -36,6 +64,7 @@ model Session {
   userName    String?
   sessionName String?
   sessionCode String?   @unique
+  gridType    String?   // 'grid2x3' | 'grid2x4' dsb
   startTime   DateTime  @default(now())
   expiresAt   DateTime
   endedAt     DateTime? // Waktu jika sesi diakhiri manual/selesai sebelum batas

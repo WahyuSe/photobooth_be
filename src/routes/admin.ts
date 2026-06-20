@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import fs from 'fs';
 import path from 'path';
+import prisma from '../prisma';
 
 const router = Router();
 const isVercel = process.env.VERCEL === '1' || !!process.env.VERCEL;
@@ -60,6 +61,102 @@ router.post('/settings', (req: Request, res: Response): any => {
   } catch (error) {
     console.error(error);
     return res.status(500).json({ success: false, message: 'Gagal memperbarui pengaturan.' });
+  }
+});
+
+// --- EVENT CONFIG ADMIN ---
+
+// GET /api/admin/event/config
+router.get('/event/config', async (_req: Request, res: Response) => {
+  try {
+    const config = await prisma.eventConfig.findFirst({
+      orderBy: { createdAt: 'desc' }
+    });
+    return res.json({ success: true, data: config });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// POST /api/admin/event/config
+router.post('/event/config', async (req: Request, res: Response) => {
+  try {
+    const data = req.body;
+    
+    // Parse dates if provided as strings
+    if (data.startDate) data.startDate = new Date(data.startDate);
+    if (data.endDate) data.endDate = new Date(data.endDate);
+
+    const config = await prisma.eventConfig.findFirst({
+      orderBy: { createdAt: 'desc' }
+    });
+
+    let updatedConfig;
+    if (config) {
+      updatedConfig = await prisma.eventConfig.update({
+        where: { id: config.id },
+        data
+      });
+    } else {
+      updatedConfig = await prisma.eventConfig.create({
+        data
+      });
+    }
+    return res.json({ success: true, data: updatedConfig });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ success: false, message: 'Gagal update event config' });
+  }
+});
+
+// --- TEMPLATE CATEGORIES ADMIN ---
+
+// GET /api/admin/categories
+router.get('/categories', async (_req: Request, res: Response) => {
+  try {
+    const categories = await prisma.templateCategory.findMany();
+    return res.json({ success: true, data: categories });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// POST /api/admin/categories
+router.post('/categories', async (req: Request, res: Response) => {
+  try {
+    const { name, description } = req.body;
+    const category = await prisma.templateCategory.create({
+      data: { name, description }
+    });
+    return res.json({ success: true, data: category });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Gagal buat kategori' });
+  }
+});
+
+// PUT /api/admin/categories/:id
+router.put('/categories/:id', async (req: Request, res: Response) => {
+  try {
+    const { name, description } = req.body;
+    const category = await prisma.templateCategory.update({
+      where: { id: req.params.id as string },
+      data: { name, description }
+    });
+    return res.json({ success: true, data: category });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Gagal update kategori' });
+  }
+});
+
+// DELETE /api/admin/categories/:id
+router.delete('/categories/:id', async (req: Request, res: Response) => {
+  try {
+    await prisma.templateCategory.delete({
+      where: { id: req.params.id as string }
+    });
+    return res.json({ success: true, message: 'Kategori dihapus' });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Gagal hapus kategori' });
   }
 });
 

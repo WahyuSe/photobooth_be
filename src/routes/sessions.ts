@@ -23,30 +23,86 @@ async function generateUniqueCode(): Promise<string> {
   return code;
 }
 
-// POST /api/sessions/create-pending (Admin)
-router.post('/create-pending', async (req: Request, res: Response) => {
+// POST /api/sessions/start
+router.post('/start', async (req: Request, res: Response) => {
   try {
-    const { userName = 'Guest', sessionName = '', durationMinutes = 10 } = req.body;
-    const expiresAt = new Date();
-    expiresAt.setMinutes(expiresAt.getMinutes() + Number(durationMinutes));
+    const { gridType } = req.body;
+    
+    // 1. Dapatkan config aktif
+    const config = await prisma.eventConfig.findFirst({
+      where: { isActive: true },
+      orderBy: { createdAt: 'desc' }
+    });
 
-    const sessionCode = await generateUniqueCode();
+    if (!config) {
+      return res.status(400).json({ success: false, message: 'Tidak ada event aktif' });
+    }
 
+    const now = new Date();
+    if (now < config.startDate || now > config.endDate) {
+      return res.status(400).json({ success: false, message: 'Event sedang tidak berlangsung saat ini' });
+    }
+
+    if (config.quota > 0 && config.usedQuota >= config.quota) {
+      return res.status(400).json({ success: false, message: 'Kuota event sudah habis' });
+    }
+
+    // 2. Buat sesi
+    const expiresAt = new Date(now.getTime() + config.userSessionDuration * 1000);
     const session = await prisma.session.create({
       data: {
-        userName,
-        sessionName,
-        sessionCode,
+        gridType,
         expiresAt,
-        status: 'PENDING',
-        isActive: true
+        status: 'ACTIVE',
+        isActive: true,
+        userName: 'Guest'
       }
     });
 
     return res.json({ success: true, data: session });
   } catch (error) {
-    console.error(error);
-    return res.status(500).json({ success: false, message: 'Gagal membuat sesi pending' });
+    console.error('Error starting session:', error);
+    return res.status(500).json({ success: false, message: 'Gagal memulai sesi' });
+  }
+});
+
+// POST /api/sessions/complete
+router.post('/complete', async (req: Request, res: Response) => {
+  try {
+    const { sessionId } = req.body;
+    
+    const session = await prisma.session.findUnique({ where: { id: sessionId } });
+    if (!session || !session.isActive) {
+      return res.status(400).json({ success: false, message: 'Sesi tidak valid atau sudah selesai' });
+    }
+
+    // Update Session
+    const updatedSession = await prisma.session.update({
+      where: { id: sessionId },
+      data: {
+        status: 'FINISHED',
+        isActive: false,
+        endedAt: new Date()
+      }
+    });
+
+    // Update Quota
+    const config = await prisma.eventConfig.findFirst({
+      where: { isActive: true },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    if (config) {
+      await prisma.eventConfig.update({
+        where: { id: config.id },
+        data: { usedQuota: { increment: 1 } }
+      });
+    }
+
+    return res.json({ success: true, data: updatedSession });
+  } catch (error) {
+    console.error('Error completing session:', error);
+    return res.status(500).json({ success: false, message: 'Gagal menyelesaikan sesi' });
   }
 });
 

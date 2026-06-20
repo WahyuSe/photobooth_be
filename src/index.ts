@@ -7,6 +7,7 @@ import templateRoutes from './routes/templates';
 import uploadRoutes from './routes/upload';
 import sessionRoutes from './routes/sessions';
 import adminRoutes from './routes/admin';
+import eventRoutes from './routes/event';
 import prisma from './prisma';
 
 dotenv.config();
@@ -56,6 +57,7 @@ app.use('/api/templates', templateRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/sessions', sessionRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/event', eventRoutes);
 
 // Health check
 app.get('/health', (_req, res) => {
