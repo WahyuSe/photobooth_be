@@ -81,26 +81,42 @@ router.get('/event/config', async (_req: Request, res: Response) => {
 // POST /api/admin/event/config
 router.post('/event/config', async (req: Request, res: Response) => {
   try {
-    const data = req.body;
+    const { isNew, ...data } = req.body;
     
     // Parse dates if provided as strings
     if (data.startDate) data.startDate = new Date(data.startDate);
     if (data.endDate) data.endDate = new Date(data.endDate);
 
-    const config = await prisma.eventConfig.findFirst({
-      orderBy: { createdAt: 'desc' }
-    });
-
     let updatedConfig;
-    if (config) {
-      updatedConfig = await prisma.eventConfig.update({
-        where: { id: config.id },
-        data
+
+    if (isNew) {
+      // Nonaktifkan semua event config yang lama
+      await prisma.eventConfig.updateMany({
+        where: { isActive: true },
+        data: { isActive: false }
+      });
+      
+      // Buat event config baru (usedQuota otomatis 0)
+      updatedConfig = await prisma.eventConfig.create({
+        data: { ...data, usedQuota: 0, isActive: true }
       });
     } else {
-      updatedConfig = await prisma.eventConfig.create({
-        data
+      // Update config yang sedang aktif
+      const config = await prisma.eventConfig.findFirst({
+        where: { isActive: true },
+        orderBy: { createdAt: 'desc' }
       });
+
+      if (config) {
+        updatedConfig = await prisma.eventConfig.update({
+          where: { id: config.id },
+          data
+        });
+      } else {
+        updatedConfig = await prisma.eventConfig.create({
+          data: { ...data, usedQuota: 0, isActive: true }
+        });
+      }
     }
     return res.json({ success: true, data: updatedConfig });
   } catch (error) {

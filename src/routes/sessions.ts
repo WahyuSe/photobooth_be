@@ -49,13 +49,17 @@ router.post('/start', async (req: Request, res: Response) => {
 
     // 2. Buat sesi
     const expiresAt = new Date(now.getTime() + config.userSessionDuration * 1000);
+    const code = await generateUniqueCode();
+    
     const session = await prisma.session.create({
       data: {
-        gridType,
+        gridType, // Bisa null jika belum dipilih
+        sessionCode: code,
+        sessionName: config.eventName,
+        userName: `Guest-${code}`,
         expiresAt,
         status: 'ACTIVE',
         isActive: true,
-        userName: 'Guest'
       }
     });
 
