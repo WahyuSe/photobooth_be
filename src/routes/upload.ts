@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import multer from 'multer';
 import path from 'path';
-import { v4 as uuidv4 } from 'uuid';
+import crypto from 'crypto';
 import fs from 'fs';
 import { uploadBase64ToDrive } from '../services/googleDriveService';
 
@@ -21,7 +21,7 @@ const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, uploadsDir),
   filename: (_req, file, cb) => {
     const ext = path.extname(file.originalname);
-    cb(null, `${uuidv4()}${ext}`);
+    cb(null, `${crypto.randomUUID()}${ext}`);
   },
 });
 
