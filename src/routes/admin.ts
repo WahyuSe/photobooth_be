@@ -84,8 +84,20 @@ router.post('/event/config', async (req: Request, res: Response) => {
     const { isNew, ...data } = req.body;
     
     // Parse dates if provided as strings
-    if (data.startDate) data.startDate = new Date(data.startDate);
-    if (data.endDate) data.endDate = new Date(data.endDate);
+    if (data.startDate) {
+      if (typeof data.startDate === 'string' && !data.startDate.includes('Z') && !data.startDate.includes('+') && !data.startDate.includes('-')) {
+        data.startDate = new Date(data.startDate + '+08:00');
+      } else {
+        data.startDate = new Date(data.startDate);
+      }
+    }
+    if (data.endDate) {
+      if (typeof data.endDate === 'string' && !data.endDate.includes('Z') && !data.endDate.includes('+') && !data.endDate.includes('-')) {
+        data.endDate = new Date(data.endDate + '+08:00');
+      } else {
+        data.endDate = new Date(data.endDate);
+      }
+    }
 
     let updatedConfig;
 
