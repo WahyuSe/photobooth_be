@@ -72,3 +72,34 @@ model Session {
   status      String    @default("ACTIVE") // PENDING, ACTIVE, FINISHED, CANCELLED
   lastPingAt  DateTime  @default(now())
 }
+
+model UITheme {
+  id       String  @id @default(cuid())
+  name     String  @default("Default")
+  isActive Boolean @default(false)
+
+  // Colors
+  colorPrimary      String @default("#3B82F6")
+  colorPrimaryHover String @default("#2563EB")
+  colorSecondary    String @default("#F3F4F6")
+  colorBackground   String @default("#F9FAFB")
+  colorCard         String @default("#FFFFFF")
+  colorText         String @default("#111827")
+  colorTextMuted    String @default("#6B7280")
+  colorBorder       String @default("#E5E7EB")
+  colorError        String @default("#EF4444")
+  colorSuccess      String @default("#10B981")
+
+  // Fonts
+  fontHeading String @default("'Sora', sans-serif")
+  fontBody    String @default("'Plus Jakarta Sans', sans-serif")
+  fontMono    String @default("'Space Grotesk', monospace")
+
+  // Border Radius
+  radiusBase String @default("0.5rem")
+  radiusLg   String @default("1rem")
+  radiusXl   String @default("1.5rem")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
