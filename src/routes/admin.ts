@@ -121,6 +121,24 @@ router.post("/event/config", async (req: Request, res: Response) => {
       }
     }
 
+    if (data.photoExpireDays !== undefined) {
+      const parsedExpireDays = Number(data.photoExpireDays);
+      if (!Number.isInteger(parsedExpireDays) || parsedExpireDays < 1) {
+        return res
+          .status(400)
+          .json({ success: false, message: "Masa berlaku link minimal 1 hari" });
+      }
+      data.photoExpireDays = parsedExpireDays;
+    }
+
+    if (data.enableGif !== undefined) {
+      data.enableGif = data.enableGif === true || data.enableGif === "true";
+    }
+
+    if (data.enableLivePhoto !== undefined) {
+      data.enableLivePhoto = data.enableLivePhoto === true || data.enableLivePhoto === "true";
+    }
+
     let updatedConfig;
 
     if (isNew) {
@@ -309,5 +327,228 @@ router.post(
     }
   },
 );
+
+// --- CANVAS SIZE ADMIN ---
+
+class BadRequestError extends Error {}
+
+const parseCanvasSizeBoolean = (value: unknown): boolean => {
+  return value === true || value === "true" || value === "1";
+};
+
+const normalizeCanvasSizeString = (field: string, value: unknown): string => {
+  if (typeof value !== "string" || value.trim() === "") {
+    throw new BadRequestError(`${field} harus berupa teks dan tidak boleh kosong`);
+  }
+  return value.trim();
+};
+
+const normalizeCanvasSizeInteger = (field: string, value: unknown, min?: number): number => {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || (min !== undefined && parsed < min)) {
+    throw new BadRequestError(`${field} harus berupa angka bulat${min !== undefined ? ` minimal ${min}` : ""}`);
+  }
+  return parsed;
+};
+
+const normalizeCanvasSizeFloat = (field: string, value: unknown): number | null => {
+  if (value === null || value === "") return null;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    throw new BadRequestError(`${field} harus berupa angka lebih dari 0`);
+  }
+  return parsed;
+};
+
+const normalizeCanvasSizePayload = (body: Record<string, unknown>, isCreate: boolean) => {
+  const data: any = {};
+
+  if (body.name !== undefined) {
+    data.name = normalizeCanvasSizeString("name", body.name);
+  } else if (isCreate) {
+    throw new BadRequestError("name wajib diisi");
+  }
+
+  if (body.description !== undefined) {
+    data.description = body.description === null || body.description === "" ? null : normalizeCanvasSizeString("description", body.description);
+  }
+
+  if (body.layoutType !== undefined) {
+    data.layoutType = normalizeCanvasSizeString("layoutType", body.layoutType);
+  }
+
+  if (body.aspectRatio !== undefined) {
+    data.aspectRatio = normalizeCanvasSizeString("aspectRatio", body.aspectRatio);
+  }
+
+  if (body.canvasWidth !== undefined) {
+    data.canvasWidth = normalizeCanvasSizeInteger("canvasWidth", body.canvasWidth, 1);
+  }
+
+  if (body.canvasHeight !== undefined) {
+    data.canvasHeight = normalizeCanvasSizeInteger("canvasHeight", body.canvasHeight, 1);
+  }
+
+  if (body.printDpi !== undefined) {
+    data.printDpi = normalizeCanvasSizeInteger("printDpi", body.printDpi, 1);
+  }
+
+  if (body.printWidthMm !== undefined) {
+    data.printWidthMm = normalizeCanvasSizeFloat("printWidthMm", body.printWidthMm);
+  }
+
+  if (body.printHeightMm !== undefined) {
+    data.printHeightMm = normalizeCanvasSizeFloat("printHeightMm", body.printHeightMm);
+  }
+
+  if (body.isActive !== undefined) {
+    data.isActive = parseCanvasSizeBoolean(body.isActive);
+  }
+
+  if (body.isDefault !== undefined) {
+    data.isDefault = parseCanvasSizeBoolean(body.isDefault);
+  }
+
+  if (body.sortOrder !== undefined) {
+    data.sortOrder = normalizeCanvasSizeInteger("sortOrder", body.sortOrder);
+  }
+
+  return data;
+};
+
+const handleCanvasSizeError = (res: Response, error: any, fallbackMessage: string) => {
+  console.error(error);
+
+  if (error instanceof BadRequestError) {
+    return res.status(400).json({ success: false, message: error.message });
+  }
+
+  if (error?.code === "P2025") {
+    return res.status(404).json({ success: false, message: "Preset ukuran canvas tidak ditemukan" });
+  }
+
+  return res.status(500).json({ success: false, message: fallbackMessage });
+};
+
+// GET /api/admin/canvas-sizes
+router.get("/canvas-sizes", async (req: Request, res: Response): Promise<any> => {
+  try {
+    const layoutType = typeof req.query.layoutType === "string" ? req.query.layoutType : undefined;
+    const isActive = req.query.active !== undefined ? parseCanvasSizeBoolean(req.query.active) : undefined;
+
+    const presets = await prisma.canvasSize.findMany({
+      where: {
+        ...(layoutType ? { layoutType } : {}),
+        ...(isActive !== undefined ? { isActive } : {}),
+      },
+      orderBy: [
+        { layoutType: "asc" },
+        { isDefault: "desc" },
+        { sortOrder: "asc" },
+        { createdAt: "asc" },
+      ],
+    });
+
+    return res.json({ success: true, data: presets });
+  } catch (error) {
+    return handleCanvasSizeError(res, error, "Gagal mengambil preset ukuran canvas");
+  }
+});
+
+// POST /api/admin/canvas-sizes
+router.post("/canvas-sizes", async (req: Request, res: Response): Promise<any> => {
+  try {
+    const data = normalizeCanvasSizePayload(req.body, true);
+
+    const preset = await prisma.$transaction(async (tx) => {
+      if (data.isDefault === true) {
+        await tx.canvasSize.updateMany({
+          where: { layoutType: data.layoutType ?? "*" },
+          data: { isDefault: false },
+        });
+      }
+
+      return tx.canvasSize.create({ data });
+    });
+
+    return res.json({ success: true, data: preset });
+  } catch (error) {
+    return handleCanvasSizeError(res, error, "Gagal membuat preset ukuran canvas");
+  }
+});
+
+// PUT /api/admin/canvas-sizes/:id
+router.put("/canvas-sizes/:id", async (req: Request, res: Response): Promise<any> => {
+  try {
+    const id = req.params.id as string;
+    const data = normalizeCanvasSizePayload(req.body, false);
+
+    const preset = await prisma.$transaction(async (tx) => {
+      const current = await tx.canvasSize.findUnique({ where: { id } });
+      if (!current) {
+        throw Object.assign(new Error("Preset ukuran canvas tidak ditemukan"), { code: "P2025" });
+      }
+
+      const nextLayoutType = data.layoutType ?? current.layoutType;
+      if (data.isDefault === true) {
+        await tx.canvasSize.updateMany({
+          where: { layoutType: nextLayoutType, id: { not: id } },
+          data: { isDefault: false },
+        });
+        data.isActive = true;
+      }
+
+      return tx.canvasSize.update({
+        where: { id },
+        data,
+      });
+    });
+
+    return res.json({ success: true, data: preset });
+  } catch (error) {
+    return handleCanvasSizeError(res, error, "Gagal mengupdate preset ukuran canvas");
+  }
+});
+
+// POST /api/admin/canvas-sizes/:id/default
+router.post("/canvas-sizes/:id/default", async (req: Request, res: Response): Promise<any> => {
+  try {
+    const id = req.params.id as string;
+
+    const preset = await prisma.$transaction(async (tx) => {
+      const current = await tx.canvasSize.findUnique({ where: { id } });
+      if (!current) {
+        throw Object.assign(new Error("Preset ukuran canvas tidak ditemukan"), { code: "P2025" });
+      }
+
+      await tx.canvasSize.updateMany({
+        where: { layoutType: current.layoutType, id: { not: id } },
+        data: { isDefault: false },
+      });
+
+      return tx.canvasSize.update({
+        where: { id },
+        data: { isDefault: true, isActive: true },
+      });
+    });
+
+    return res.json({ success: true, data: preset });
+  } catch (error) {
+    return handleCanvasSizeError(res, error, "Gagal mengatur preset default" );
+  }
+});
+
+// DELETE /api/admin/canvas-sizes/:id
+router.delete("/canvas-sizes/:id", async (req: Request, res: Response): Promise<any> => {
+  try {
+    await prisma.canvasSize.delete({
+      where: { id: req.params.id as string },
+    });
+
+    return res.json({ success: true, message: "Preset ukuran canvas dihapus" });
+  } catch (error) {
+    return handleCanvasSizeError(res, error, "Gagal menghapus preset ukuran canvas");
+  }
+});
 
 export default router;

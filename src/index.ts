@@ -7,8 +7,10 @@ import templateRoutes from './routes/templates';
 import uploadRoutes from './routes/upload';
 import sessionRoutes from './routes/sessions';
 import adminRoutes from './routes/admin';
+import galleryRoutes from './routes/gallery';
 import eventRoutes from './routes/event';
 import themeRoutes from './routes/theme';
+import canvasSizeRoutes from './routes/canvasSizes';
 import prisma from './prisma';
 
 dotenv.config();
@@ -44,8 +46,8 @@ app.use(cors({
   },
   credentials: true,
 }));
-app.use(express.json({ limit: '25mb' }));
-app.use(express.urlencoded({ extended: true, limit: '25mb' }));
+app.use(express.json({ limit: '75mb' }));
+app.use(express.urlencoded({ extended: true, limit: '75mb' }));
 
 // Static - serve template assets
 app.use('/assets', express.static(path.join(__dirname, '../assets')));
@@ -60,6 +62,8 @@ app.use('/api/sessions', sessionRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/event', eventRoutes);
 app.use('/api/theme', themeRoutes);
+app.use('/api/gallery', galleryRoutes);
+app.use('/api/canvas-sizes', canvasSizeRoutes);
 
 // Health check
 app.get('/health', (_req, res) => {

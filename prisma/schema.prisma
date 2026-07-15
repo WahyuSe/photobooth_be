@@ -18,10 +18,10 @@ model TemplateCategory {
 }
 
 model Template {
-  id              String   @id @default(cuid())
+  id              String            @id @default(cuid())
   name            String
   description     String
-  layout          String   // 'strip' | 'grid2x2' | 'single' | 'strip3' | 'grid2x3' | 'grid2x4'
+  layout          String // 'strip' | 'grid2x2' | 'single' | 'strip3' | 'grid2x3' | 'grid2x4'
   photoCount      Int
   thumbnail       String?
   frameColor      String
@@ -29,17 +29,17 @@ model Template {
   textColor       String
   accentColor     String
   fonts           String
-  hasLogo         Boolean  @default(true)
-  hasDate         Boolean  @default(true)
-  hasFrame        Boolean  @default(true)
-  frameWidth      Int      @default(20)
-  aspectRatio     String   @default("1:3")
+  hasLogo         Boolean           @default(true)
+  hasDate         Boolean           @default(true)
+  hasFrame        Boolean           @default(true)
+  frameWidth      Int               @default(20)
+  aspectRatio     String            @default("1:3")
   overlayImage    String?
   slotsJson       String?
   categoryId      String?
   category        TemplateCategory? @relation(fields: [categoryId], references: [id])
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
 }
 
 model EventConfig {
@@ -54,6 +54,9 @@ model EventConfig {
   page2Duration       Int      @default(180)
   page3Duration       Int      @default(60)
   photoCountdown      Int      @default(5)
+  photoExpireDays     Int      @default(15)
+  enableGif           Boolean  @default(true)
+  enableLivePhoto     Boolean  @default(true)
   isActive            Boolean  @default(true)
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
@@ -64,13 +67,20 @@ model Session {
   userName    String?
   sessionName String?
   sessionCode String?   @unique
-  gridType    String?   // 'grid2x3' | 'grid2x4' dsb
+  gridType    String? // 'grid2x3' | 'grid2x4' dsb
   startTime   DateTime  @default(now())
   expiresAt   DateTime
   endedAt     DateTime? // Waktu jika sesi diakhiri manual/selesai sebelum batas
   isActive    Boolean   @default(true)
   status      String    @default("ACTIVE") // PENDING, ACTIVE, FINISHED, CANCELLED
   lastPingAt  DateTime  @default(now())
+
+  drivePhotoUrl  String?
+  driveGifUrl    String?
+  driveLiveUrl   String?
+  driveFolderId  String?
+  accessToken    String?   @unique
+  tokenExpiresAt DateTime?
 }
 
 model UITheme {
@@ -102,4 +112,45 @@ model UITheme {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+/// Konfigurasi ukuran canvas dan cetak untuk setiap layout type.
+/// Mendukung multiple preset ukuran (misal: 4R, A4, dsb) per layout.
+model CanvasSize {
+  id          String  @id @default(cuid())
+  name        String // Nama preset, misal: "4R", "A4", "Strip Kecil"
+  description String?
+
+  // Layout yang menggunakan ukuran ini
+  // Nilai: 'strip' | 'strip3' | 'grid2x2' | 'grid2x3' | 'grid2x4' | 'grid3x2' | 'single' | 'grid' | '*' (semua)
+  layoutType String @default("*")
+
+  // Aspect ratio canvas yang sesuai
+  // Nilai: '2:3' | '1:3' | '1:1' | '3:4'
+  aspectRatio String @default("2:3")
+
+  // Dimensi virtual canvas (piksel) — digunakan untuk rendering di layar
+  canvasWidth  Int @default(1200)
+  canvasHeight Int @default(1800)
+
+  // Resolusi target untuk cetak (DPI)
+  // 150 dpi → ukuran cetak lebih besar, 300 dpi → kualitas cetak tinggi
+  printDpi Int @default(300)
+
+  // Ukuran cetak fisik (milimeter) — opsional, dikalkulasi dari canvas / dpi jika kosong
+  // Contoh: 4R = 102mm x 152mm, A4 = 210mm x 297mm
+  printWidthMm  Float?
+  printHeightMm Float?
+
+  // Apakah preset ini aktif / bisa dipilih
+  isActive  Boolean  @default(true)
+  isDefault Boolean  @default(false) // Satu preset bisa dijadikan default per layoutType
+  sortOrder Int      @default(0) // Urutan tampil di UI
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([layoutType])
+  @@index([aspectRatio])
+  @@index([isActive, isDefault])
 }

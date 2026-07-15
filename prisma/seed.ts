@@ -156,7 +156,123 @@ async function main() {
     },
   });
 
+  console.log('Membuat preset ukuran canvas...');
+
+  // Hapus data lama jika ada
+  await prisma.canvasSize.deleteMany();
+
+  // Preset 4R (102mm x 152mm) → cocok untuk grid2x3, grid2x4, dan strip
+  // Pada 300 DPI: 4R = 1205 x 1795 px ≈ dibulatkan ke 1200 x 1800
+  await prisma.canvasSize.createMany({
+    data: [
+      // --- Grid 2x3 ---
+      {
+        name: '4R',
+        description: 'Ukuran cetak 4R (10x15 cm) — standar fotobooth, resolusi 300 DPI',
+        layoutType: 'grid2x3',
+        aspectRatio: '2:3',
+        canvasWidth: 1200,
+        canvasHeight: 1800,
+        printDpi: 300,
+        printWidthMm: 102,
+        printHeightMm: 152,
+        isActive: true,
+        isDefault: true,
+        sortOrder: 1,
+      },
+      {
+        name: 'A4 Portrait',
+        description: 'Ukuran cetak A4 (21x29.7 cm) — cocok untuk cetakan event besar, 150 DPI',
+        layoutType: 'grid2x3',
+        aspectRatio: '2:3',
+        canvasWidth: 1240,
+        canvasHeight: 1754,
+        printDpi: 150,
+        printWidthMm: 210,
+        printHeightMm: 297,
+        isActive: true,
+        isDefault: false,
+        sortOrder: 2,
+      },
+      // --- Grid 2x4 ---
+      {
+        name: '4R',
+        description: 'Ukuran cetak 4R (10x15 cm) — standar fotobooth, resolusi 300 DPI',
+        layoutType: 'grid2x4',
+        aspectRatio: '2:3',
+        canvasWidth: 1200,
+        canvasHeight: 1800,
+        printDpi: 300,
+        printWidthMm: 102,
+        printHeightMm: 152,
+        isActive: true,
+        isDefault: true,
+        sortOrder: 1,
+      },
+      {
+        name: 'A4 Portrait',
+        description: 'Ukuran cetak A4 (21x29.7 cm), 150 DPI',
+        layoutType: 'grid2x4',
+        aspectRatio: '2:3',
+        canvasWidth: 1240,
+        canvasHeight: 1754,
+        printDpi: 150,
+        printWidthMm: 210,
+        printHeightMm: 297,
+        isActive: true,
+        isDefault: false,
+        sortOrder: 2,
+      },
+      // --- Strip (4 foto vertikal) ---
+      {
+        name: 'Strip Standar',
+        description: 'Strip 4 foto — lebar 6 cm x tinggi 18 cm, 300 DPI',
+        layoutType: 'strip',
+        aspectRatio: '1:3',
+        canvasWidth: 600,
+        canvasHeight: 1800,
+        printDpi: 300,
+        printWidthMm: 51,
+        printHeightMm: 152,
+        isActive: true,
+        isDefault: true,
+        sortOrder: 1,
+      },
+      // --- Strip 3 foto ---
+      {
+        name: 'Strip Standar',
+        description: 'Strip 3 foto — lebar 6 cm x tinggi 15 cm, 300 DPI',
+        layoutType: 'strip3',
+        aspectRatio: '1:3',
+        canvasWidth: 600,
+        canvasHeight: 1800,
+        printDpi: 300,
+        printWidthMm: 51,
+        printHeightMm: 152,
+        isActive: true,
+        isDefault: true,
+        sortOrder: 1,
+      },
+      // --- Single foto ---
+      {
+        name: '4R',
+        description: 'Foto tunggal ukuran 4R (10x15 cm), 300 DPI',
+        layoutType: 'single',
+        aspectRatio: '2:3',
+        canvasWidth: 1200,
+        canvasHeight: 1800,
+        printDpi: 300,
+        printWidthMm: 102,
+        printHeightMm: 152,
+        isActive: true,
+        isDefault: true,
+        sortOrder: 1,
+      },
+    ],
+  });
+
   console.log('Seed berhasil dijalankan!');
+
 }
 
 main()
