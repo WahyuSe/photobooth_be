@@ -1,10 +1,10 @@
 import { google } from "googleapis";
+import fs from "fs";
+import path from "path";
 import { Readable } from "stream";
-// import path from 'path';
-// import fs from 'fs';
 
 // Path to Google Service Account Key JSON
-// const KEY_FILE_PATH = path.join(__dirname, '../../google-credentials.json');
+const KEY_FILE_PATH = path.resolve(process.cwd(), "google-credentials.json");
 
 // Get folder ID and script URL from env
 const FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID;
@@ -18,15 +18,49 @@ export type DriveUploadMimeType =
   | "video/webm"
   | "video/mp4";
 
-/**
- * Helper to check if credentials file exists
- */
-// function checkCredentialsExist(): boolean {
-//   return fs.existsSync(KEY_FILE_PATH);
-// }
+function parseCredentialJson(rawCredential: string): any {
+  try {
+    return JSON.parse(rawCredential);
+  } catch (_jsonError) {
+    try {
+      return JSON.parse(Buffer.from(rawCredential, "base64").toString("utf8"));
+    } catch (_base64Error) {
+      return null;
+    }
+  }
+}
 
-function getDriveClient() {
-  const credential = process.env.GOOGLE_CREDENTIAL;
+function loadCredentialFromFile(filePath: string): any {
+  const resolvedPath = path.isAbsolute(filePath)
+    ? filePath
+    : path.resolve(process.cwd(), filePath);
+
+  if (!fs.existsSync(resolvedPath)) {
+    return null;
+  }
+
+  return parseCredentialJson(fs.readFileSync(resolvedPath, "utf8"));
+}
+
+function loadGoogleCredentials(): any {
+  const credential = process.env.GOOGLE_CREDENTIAL?.trim();
+
+  if (credential) {
+    const credentialsFromJson = parseCredentialJson(credential);
+    if (credentialsFromJson) {
+      return credentialsFromJson;
+    }
+
+    const credentialsFromPath = loadCredentialFromFile(credential);
+    if (credentialsFromPath) {
+      return credentialsFromPath;
+    }
+  }
+
+  const credentialsFromDefaultFile = loadCredentialFromFile(KEY_FILE_PATH);
+  if (credentialsFromDefaultFile) {
+    return credentialsFromDefaultFile;
+  }
 
   if (!credential) {
     throw new Error(
@@ -34,15 +68,13 @@ function getDriveClient() {
     );
   }
 
-  let credentials: any;
+  throw new Error(
+    "GOOGLE_CREDENTIAL bukan JSON yang valid. Isi dengan JSON satu baris, base64 JSON, atau path file Service Account JSON.",
+  );
+}
 
-  try {
-    credentials = JSON.parse(credential);
-  } catch (error) {
-    throw new Error(
-      "GOOGLE_CREDENTIAL bukan JSON yang valid. Pastikan isi Environment Variable adalah JSON Service Account.",
-    );
-  }
+function getDriveClient() {
+  const credentials = loadGoogleCredentials();
 
   // Perbaiki newline pada private key
   if (credentials.private_key) {

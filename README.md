@@ -31,6 +31,7 @@ Direktori ini berisi kode server backend untuk aplikasi PhotoBooth. Backend diba
    * `SMTP_USER` & `SMTP_PASS`: Kredensial SMTP Gmail/Email Anda (lihat panduan SMTP Gmail di README utama).
    * `GOOGLE_DRIVE_FOLDER_ID`: ID Folder Google Drive target penyimpanan foto.
    * `GOOGLE_DRIVE_SCRIPT_URL`: URL Web App Google Apps Script proxy (jika menggunakan akun gratis `@gmail.com`).
+   * `GOOGLE_CREDENTIAL`: JSON Service Account satu baris, base64 JSON, atau path file JSON seperti `google-credentials.json` untuk local development. Jangan tempel JSON multiline langsung di `.env`.
 
 5. **Sinkronisasi Skema Database (Prisma):**
    Jalankan perintah ini untuk membuat tabel otomatis di database PostgreSQL Anda:
